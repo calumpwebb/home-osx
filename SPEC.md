@@ -237,6 +237,8 @@ On API call:
 ### Pinned for Later
 - [ ] AI assistant
 - [ ] "Who's logged in" widget on home screen (show active sessions/users)
+- [ ] Email integration (for invites, notifications, etc.)
+- [ ] Write Tailscale setup guide (how to configure for home-osx access)
 
 ### Research TODOs
 - [ ] Check if WiFi router has an API we can call to get network data (connected devices, bandwidth, etc.)
