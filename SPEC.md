@@ -17,7 +17,7 @@ Dark mode interface designed for wall or desk mounting on an iPad Pro 12.9" (4th
 | **Auth** | Email/password, invite-only, JWT sessions |
 | **Monorepo** | pnpm workspaces |
 | **iPad App** | Capacitor (WebView wrapper) |
-| **Containerization** | Docker Compose (K8s-ready) |
+| **Containerization** | Docker + Tilt (dev), K8s (prod) |
 
 ## Architecture
 
@@ -33,9 +33,48 @@ home-osx/
 │   ├── Dockerfile.api
 │   ├── Dockerfile.web
 │   └── docker-compose.yml
-├── k8s/                  # Kubernetes manifests (future)
+├── k8s/                  # Kubernetes manifests (prod)
+├── Tiltfile              # Tilt config for local dev
 └── package.json          # pnpm workspaces root
 ```
+
+## Local Development (Tilt)
+
+Tilt orchestrates local dev with hot-reload for all services:
+
+```bash
+# Start everything
+tilt up
+
+# Dashboard at http://localhost:10350
+```
+
+### Tiltfile Overview
+```python
+# Tiltfile
+docker_build('home-osx-api', './apps/api', dockerfile='./docker/Dockerfile.api')
+docker_build('home-osx-web', './apps/web', dockerfile='./docker/Dockerfile.web')
+
+# Live reload - sync code without full rebuild
+docker_build('home-osx-api', './apps/api',
+  live_update=[
+    sync('./apps/api/src', '/app/src'),
+    run('pnpm install', trigger=['./apps/api/package.json']),
+  ]
+)
+
+# Port forwards
+k8s_resource('api', port_forwards='3001:3001')
+k8s_resource('web', port_forwards='3000:3000')
+k8s_resource('postgres', port_forwards='5432:5432')
+```
+
+### Services in Dev
+| Service | Port | Description |
+|---------|------|-------------|
+| web | 3000 | React frontend (Vite HMR) |
+| api | 3001 | Hono backend |
+| postgres | 5432 | PostgreSQL database |
 
 ## Deployment
 
