@@ -11,70 +11,119 @@ Dark mode interface designed for wall or desk mounting on an iPad Pro 12.9" (4th
 | Layer | Technology |
 |-------|------------|
 | **Frontend** | React 18 + TypeScript (strict) + Vite |
-| **Backend** | Hono + TypeScript (strict) |
-| **Database** | PostgreSQL |
-| **ORM** | Drizzle |
+| **Backend** | Convex (real-time, auto-generated types) |
+| **Database** | Convex (built-in) |
 | **Auth** | Email/password, invite-only, JWT sessions |
 | **Monorepo** | pnpm workspaces |
 | **iPad App** | Capacitor (WebView wrapper) |
 | **Containerization** | Docker + Tilt (dev), K8s (prod) |
+
+### Why Convex?
+- **Single source of types** - Schema defines types, shared everywhere (no split brain)
+- **Real-time by default** - Live updates without WebSocket boilerplate
+- **TypeScript end-to-end** - Full type safety from DB to UI
+- **No API layer to write** - Functions are auto-exposed
 
 ## Architecture
 
 ```
 home-osx/
 ├── apps/
-│   ├── web/              # React frontend (Vite)
-│   └── api/              # Hono backend
-├── packages/
-│   └── shared/           # Shared types, validation schemas (Zod)
-├── ios/                  # Capacitor iOS project
+│   └── web/                    # React frontend (Vite)
+├── convex/                     # Convex backend
+│   ├── schema.ts               # Single source of truth for types
+│   ├── auth.ts                 # Auth functions
+│   ├── platform/               # Platform core (shared APIs for apps)
+│   │   ├── notifications.ts
+│   │   ├── settings.ts
+│   │   └── hooks.ts            # Lifecycle hooks apps can use
+│   └── apps/                   # Built-in app modules
+│       ├── spotify/
+│       ├── sonos/
+│       ├── weather/
+│       ├── hue/
+│       ├── vacuum/
+│       └── wifi/
+├── ios/                        # Capacitor iOS project
 ├── docker/
-│   ├── Dockerfile.api
-│   ├── Dockerfile.web
-│   └── docker-compose.yml
-├── k8s/                  # Kubernetes manifests (prod)
-├── Tiltfile              # Tilt config for local dev
-└── package.json          # pnpm workspaces root
+│   └── Dockerfile.web
+├── k8s/                        # Kubernetes manifests (prod)
+├── Tiltfile                    # Tilt config for local dev
+└── package.json                # pnpm workspaces root
 ```
 
-## Local Development (Tilt)
+## Apps Platform
 
-Tilt orchestrates local dev with hot-reload for all services:
+home-osx is like a mini OS - the platform provides core services that apps can use.
+
+### Platform Core (convex/platform/)
+```typescript
+// Platform APIs available to all apps
+interface Platform {
+  // Notifications
+  notify(message: string, options?: NotifyOptions): void;
+
+  // Settings storage (per-app)
+  getSetting<T>(key: string): T | null;
+  setSetting<T>(key: string, value: T): void;
+
+  // Current user
+  getCurrentUser(): User;
+
+  // Lifecycle hooks
+  onAppMount(callback: () => void): void;
+  onAppUnmount(callback: () => void): void;
+}
+```
+
+### App Structure
+Each app in `convex/apps/` follows this pattern:
+```typescript
+// convex/apps/spotify/index.ts
+import { platform } from '../platform';
+
+export const app = {
+  id: 'spotify',
+  name: 'Spotify',
+  icon: 'spotify-icon',
+
+  // Convex functions
+  functions: {
+    play: mutation(...),
+    pause: mutation(...),
+    getNowPlaying: query(...),
+  },
+
+  // React component for the tile/widget
+  component: SpotifyWidget,
+};
+```
+
+### App Ideas (Scratchpad)
+| App | Description | API/Integration |
+|-----|-------------|-----------------|
+| **Weather** | Minimal date/time, weather conditions | WeatherKit API |
+| **Spotify** | Now playing, controls, auto-play to Sonos zones | Spotify Web API |
+| **Sonos** | Zone control, volume, grouping | Sonos API |
+| **Hue** | Lights control, scenes | Philips Hue API |
+| **Vacuum** | Dreame L50 Ultra status, start/stop | Dreame API (research) |
+| **WiFi** | GB used, connected devices, site traffic | Router API (research) |
+
+## Local Development
 
 ```bash
-# Start everything
+# Start Convex + Vite
+pnpm dev
+
+# Or with Tilt (for full stack including iOS simulator)
 tilt up
-
-# Dashboard at http://localhost:10350
-```
-
-### Tiltfile Overview
-```python
-# Tiltfile
-docker_build('home-osx-api', './apps/api', dockerfile='./docker/Dockerfile.api')
-docker_build('home-osx-web', './apps/web', dockerfile='./docker/Dockerfile.web')
-
-# Live reload - sync code without full rebuild
-docker_build('home-osx-api', './apps/api',
-  live_update=[
-    sync('./apps/api/src', '/app/src'),
-    run('pnpm install', trigger=['./apps/api/package.json']),
-  ]
-)
-
-# Port forwards
-k8s_resource('api', port_forwards='3001:3001')
-k8s_resource('web', port_forwards='3000:3000')
-k8s_resource('postgres', port_forwards='5432:5432')
 ```
 
 ### Services in Dev
 | Service | Port | Description |
 |---------|------|-------------|
 | web | 3000 | React frontend (Vite HMR) |
-| api | 3001 | Hono backend |
-| postgres | 5432 | PostgreSQL database |
+| convex | - | Convex dev server (auto-starts) |
 
 ## Deployment
 
@@ -280,7 +329,12 @@ On API call:
 - [ ] Write Tailscale setup guide (how to configure for home-osx access)
 
 ### Research TODOs
-- [ ] Check if WiFi router has an API we can call to get network data (connected devices, bandwidth, etc.)
+- [ ] WiFi router API - network data (connected devices, bandwidth, site traffic)
+- [ ] Dreame L50 Ultra API - vacuum status, start/stop, maps
+- [ ] WeatherKit API - Apple's weather service setup
+- [ ] Philips Hue API - local bridge API for lights/scenes
+- [ ] Sonos API - zone control, grouping
+- [ ] Spotify Web API - playback control, now playing
 
 ## Target Device
 
