@@ -96,17 +96,56 @@ home-osx/
 | POST | `/api/admin/invite` | Admin | Create invite for new user |
 | POST | `/api/auth/register` | Invite | Register with invite token |
 
-### Token Storage (Client)
-- **Store in memory** (React state/context) - most secure
-- **Optional:** `localStorage` for persistence across tabs (less secure but practical)
-- **Never:** cookies (not needed for this architecture)
+### Token Strategy (Persistent Login)
+```
+Login returns:
+├── Access Token (15 min) → used for API calls
+└── Refresh Token (90 days) → used to get new access token
+
+On API call:
+1. Use access token
+2. If 401 expired → call /api/auth/refresh
+3. Get new access token, retry original request
+4. If refresh fails → redirect to login
+```
+
+- **Access Token:** 15 min, stored in memory
+- **Refresh Token:** 90 days, stored in localStorage (web) or Capacitor Secure Storage (iPad)
+- **Result:** User logs in once, stays logged in for 90 days
+
+### Token Storage
+| Token | Web | iPad (Capacitor) |
+|-------|-----|------------------|
+| Access | Memory (React state) | Memory (React state) |
+| Refresh | `localStorage` | `@capacitor/secure-storage` |
 
 ### Security
-- JWT signed with HS256 or RS256
-- Short expiry (15min-1hr) with optional refresh token
+- JWT signed with HS256
+- Access token: 15 min expiry
+- Refresh token: 90 days expiry
 - HTTPS only (Tailscale handles this)
 - Rate limiting on login endpoint
+- Refresh tokens stored in DB (can be revoked)
 - Invite tokens single-use and time-limited
+
+### Password Manager Compliance (1Password, etc.)
+
+```html
+<form autocomplete="on">
+  <input type="email" name="email" autocomplete="email" />
+  <input type="password" name="password" autocomplete="current-password" />
+</form>
+```
+
+- Use proper `<form>` element
+- Correct `type` and `autocomplete` attributes
+- Never disable paste on password fields
+- Registration uses `autocomplete="new-password"`
+
+### Password Policy
+- Minimum 16 characters
+- No other complexity requirements
+- Allow paste in password fields
 
 ## Features
 
@@ -123,8 +162,11 @@ home-osx/
 
 ### Phase 3 - Expansion
 - [ ] Additional smart home integrations
-- [ ] AI assistant (pinned for later)
 - [ ] Home Assistant integration (if needed)
+
+### Pinned for Later
+- [ ] AI assistant
+- [ ] "Who's logged in" widget on home screen (show active sessions/users)
 
 ## Target Device
 
