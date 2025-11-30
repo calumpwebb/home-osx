@@ -87,12 +87,82 @@ home-osx/
 }
 ```
 
+### User Model
+```typescript
+interface User {
+  id: string;           // UUID
+  email: string;
+  firstName: string;
+  lastName: string;
+  passwordHash: string | null;  // null until first login
+  role: 'admin' | 'user';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Device {
+  id: string;           // UUID
+  userId: string;
+  name: string;         // e.g., "iPad", "Calum's Mac"
+  refreshToken: string;
+  lastUsedAt: Date;
+  createdAt: Date;
+}
+```
+
+### Seed Users (Database Migration)
+```typescript
+// Always seeded on fresh DB
+const seedUsers = [
+  {
+    email: 'calumpeterwebb@icloud.com',
+    firstName: 'Calum',
+    lastName: 'Webb',
+    role: 'admin',
+    passwordHash: null,  // Set on first login
+  },
+  {
+    email: 'christie.cabus@yahoo.com',
+    firstName: 'Christie',
+    lastName: 'Cabus',
+    role: 'user',
+    passwordHash: null,  // Set on first login
+  },
+];
+```
+
+### First Login Flow
+```
+1. User enters email
+2. If user exists AND passwordHash is null:
+   → Show "Set your password" screen
+   → User creates password (16 char min)
+   → Save passwordHash, proceed to device naming
+3. If user exists AND has password:
+   → Normal login flow
+4. If user doesn't exist:
+   → "No account found" error
+```
+
+### Device Registration
+On every new login (no valid refresh token for this device):
+```
+1. Login succeeds
+2. Prompt: "Name this device" (e.g., "iPad", "Calum's Mac")
+3. Save device with name + refresh token
+4. Device name shown in "Who's logged in" widget later
+```
+
 ### Endpoints
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/auth/login` | No | Email/password → JWT |
-| POST | `/api/auth/refresh` | Yes | Refresh token (optional) |
+| POST | `/api/auth/login` | No | Email/password → JWT + refresh |
+| POST | `/api/auth/setup-password` | No | First-time password setup |
+| POST | `/api/auth/refresh` | Refresh | Get new access token |
+| POST | `/api/auth/register-device` | Yes | Save device name |
 | GET | `/api/auth/me` | Yes | Get current user info |
+| GET | `/api/auth/devices` | Yes | List user's devices |
+| DELETE | `/api/auth/devices/:id` | Yes | Revoke a device |
 | POST | `/api/admin/invite` | Admin | Create invite for new user |
 | POST | `/api/auth/register` | Invite | Register with invite token |
 
@@ -167,6 +237,9 @@ On API call:
 ### Pinned for Later
 - [ ] AI assistant
 - [ ] "Who's logged in" widget on home screen (show active sessions/users)
+
+### Research TODOs
+- [ ] Check if WiFi router has an API we can call to get network data (connected devices, bandwidth, etc.)
 
 ## Target Device
 
