@@ -46,10 +46,67 @@ home-osx/
 
 ## Authentication
 
-- Email/password authentication
-- Invite-only registration (admin creates accounts)
-- JWT-based sessions
-- All routes protected by default
+### Architecture
+```
+┌─────────────────┐         ┌─────────────────┐
+│   Dumb Client   │         │    Hono API     │
+│  (React App)    │         │                 │
+├─────────────────┤         ├─────────────────┤
+│                 │  POST   │                 │
+│  Login Form ────┼────────►│  /api/auth/login│
+│                 │         │       │         │
+│                 │◄────────┼───────┘         │
+│  Store JWT      │  JWT    │  Validate creds │
+│  in memory      │         │  Return JWT     │
+│                 │         │                 │
+│                 │  GET    │                 │
+│  Any Request ───┼────────►│  /api/*         │
+│  Authorization: │         │       │         │
+│  Bearer <jwt>   │         │  Auth Middleware│
+│                 │         │  Validates JWT  │
+│                 │◄────────┼───────┘         │
+│                 │  Data   │                 │
+└─────────────────┘         └─────────────────┘
+```
+
+### Principles
+- **Stateless:** No server-side sessions, JWT contains all auth info
+- **Dumb client:** Frontend only renders UI, all logic in API
+- **Single login endpoint:** `POST /api/auth/login` returns JWT
+- **Bearer token:** All requests include `Authorization: Bearer <token>`
+- **Middleware validation:** Every `/api/*` route (except login) validates JWT
+
+### JWT Structure
+```json
+{
+  "sub": "user-uuid",
+  "email": "user@example.com",
+  "role": "admin" | "user",
+  "iat": 1699900000,
+  "exp": 1699986400
+}
+```
+
+### Endpoints
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/login` | No | Email/password → JWT |
+| POST | `/api/auth/refresh` | Yes | Refresh token (optional) |
+| GET | `/api/auth/me` | Yes | Get current user info |
+| POST | `/api/admin/invite` | Admin | Create invite for new user |
+| POST | `/api/auth/register` | Invite | Register with invite token |
+
+### Token Storage (Client)
+- **Store in memory** (React state/context) - most secure
+- **Optional:** `localStorage` for persistence across tabs (less secure but practical)
+- **Never:** cookies (not needed for this architecture)
+
+### Security
+- JWT signed with HS256 or RS256
+- Short expiry (15min-1hr) with optional refresh token
+- HTTPS only (Tailscale handles this)
+- Rate limiting on login endpoint
+- Invite tokens single-use and time-limited
 
 ## Features
 
