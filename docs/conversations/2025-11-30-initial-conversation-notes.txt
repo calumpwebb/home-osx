@@ -1,0 +1,1525 @@
+
+╭─── Claude Code v2.0.55 ──────────────────────────────────────────────────────╮
+│                           │ Tips for getting started                         │
+│    Welcome back Calum!    │ Run /init to create a CLAUDE.md file with instr… │
+│                           │ ──────────────────────────────────────────────── │
+│          ▐▛███▜▌          │ Recent activity                                  │
+│         ▝▜█████▛▘         │ No recent activity                               │
+│           ▘▘ ▝▝           │                                                  │
+│                           │                                                  │
+│   Opus 4.5 · Claude Max   │                                                  │
+│          ~/home           │                                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+> organize my thoughts (ultathink):
+
+```thoughts.md
+
+this project is going to be an app i run ony my ipad that has the following 
+components:
+
+1. frontend (react app, a website that i can write typescript react in)
+2. a backend api (run on a server that i can host on my homelab, for now we 
+can decide it being reachable somewhere and we can plumb that up later)
+3. a database to store everything in!
+
+i want this to be an open source project on github, all in typescript and 
+strict mode on
+
+the target is an iPad pro 12.9inch 4th generation that i'll lock into that 
+single app
+
+i want to have a dark mode interface that i can mount on my wall or desk
+
+i want integrations with:
+1. spotify (to play music throughout the house)_
+2. sonos (all the speakers are sonos...)
+3. other smart devices i can integrate with
+
+i think a home screen with the weather
+
+an ai assistant could be fun, put a pin in that
+
+i  want it locked to just this app, no getting out of that but with react so
+ maybe an app with web view? not sure
+
+```
+
+any give me feedback and let 
+
+⏺ Looking at your thoughts, this is a solid foundation for a home
+  dashboard/control panel app. Let me give you some feedback and ask a few
+  clarifying questions.
+
+  Feedback on Your Plan
+
+  Strengths:
+  - TypeScript strict mode everywhere is the right call
+  - Monorepo with shared types between frontend/backend works well
+  - React for the frontend is practical - lots of ecosystem support for the
+  integrations you want
+  - Homelab backend gives you full control
+
+  Considerations:
+
+  1. iPad "kiosk mode" - You have two options:
+    - Guided Access (iOS built-in) - locks to Safari/any app, no native app
+  needed
+    - Native wrapper app (React Native or Capacitor with WebView) - more
+  control but App Store hassles for personal use
+  2. Sonos + Spotify integration - These overlap. Sonos has its own Spotify
+  connect, so you'd likely control Spotify through Sonos rather than
+  separately. Worth deciding if you want direct Spotify control or just
+  Sonos as the audio layer.
+  3. "Other smart devices" - This is where scope can explode. Home Assistant
+   has solved this problem extensively - you might want to integrate with
+  Home Assistant rather than building device integrations from scratch.
+  4. Database choice - SQLite would be simplest for homelab, Postgres if you
+   want more power. What kind of data are you storing? (settings,
+  automations, history?)
+                                                                           
+⏺ User answered Claude's questions:
+  ⎿  · For the iPad lockdown, which approach do you prefer? → I don't get 
+     the differences? can u explain please
+     · How do you want to handle smart home devices? → Start simple, decide 
+     later
+
+     · What database fits your needs? → PostgreSQL
+
+⏺ iPad Lockdown Options Explained
+
+  Option 1: Guided Access (iOS built-in)
+  - You build a normal website, open it in Safari
+  - Go to Settings → Accessibility → Guided Access, enable it
+  - Triple-click the home button to lock the iPad to that app
+  - Requires a passcode to exit
+  - Pros: Zero extra development, works today, no Apple developer account
+  needed
+  - Cons: Less polished (Safari UI visible), can't do things like prevent
+  swipe gestures as granularly
+
+  Option 2: Native Wrapper App
+  - You build a minimal Swift/React Native/Capacitor app that just loads
+  your web app in a fullscreen WebView
+  - Can hide all browser chrome, handle gestures, add native features
+  - Deploy via TestFlight or enterprise certificate
+  - Pros: Cleaner look, more control, can add native features later
+  (widgets, notifications)
+  - Cons: Need Apple Developer account ($99/yr), build/deploy pipeline,
+  TestFlight expires every 90 days unless you deal with App Store
+                                                                           
+⏺ User answered Claude's questions:
+  ⎿  · Now that you understand the options - which iPad approach? → Native 
+     wrapper
+
+⏺ Good choice - gives you room to grow. You'll want a simple Capacitor or
+  React Native WebView shell.
+
+  Summary of Decisions
+
+  | Area       | Choice                                 |
+  |------------|----------------------------------------|
+  | iPad       | Native wrapper (Capacitor/RN WebView)  |
+  | Smart Home | Start with Sonos/Spotify, expand later |
+  | Database   | PostgreSQL                             |
+  | Frontend   | React + TypeScript (strict)            |
+  | Backend    | TypeScript API (Express/Fastify/Hono)  |
+                                                                           
+⏺ User answered Claude's questions:
+  ⎿  · Which backend framework do you prefer? → Can u explain the benefit of
+      hono? 
+     · Which native wrapper approach for iPad? → Capacitor
+     · What should we call this project? → home-osx
+
+⏺ Why Hono?
+
+  Hono is a relatively new framework (2022+) that's gained a lot of
+  traction:
+
+  1. Tiny - ~14KB, starts in milliseconds. Express is much heavier.
+  2. TypeScript-first - Built in TS from day one. Type inference for routes,
+   middleware, and request/response is excellent. Express's types are bolted
+   on.
+  3. Modern API - Uses Web Standards (Request/Response objects) so your
+  knowledge transfers to edge functions, Cloudflare Workers, Deno, Bun, etc.
+  4. Fast - Benchmarks show it's one of the fastest Node frameworks.
+  5. Great DX - Example:
+  const app = new Hono()
+
+  app.get('/api/weather', (c) => {
+    return c.json({ temp: 72, condition: 'sunny' })
+  })
+
+  // Typed routes with Zod validation built-in
+  const route = app.post('/api/room',
+    zValidator('json', RoomSchema),
+    (c) => {
+      const room = c.req.valid('json') // fully typed!
+      return c.json(room)
+    }
+  )
+  6. RPC mode - Can generate fully typed client from your routes (like tRPC
+  but lighter)
+
+  Downsides: Smaller ecosystem than Express, fewer tutorials/Stack Overflow
+  answers, some niche middleware may not exist yet.
+
+  For a greenfield personal project with TypeScript strict mode? Hono is a
+  great fit. Express is safer if you want maximum googl-ability.
+                                                               
+⏺ User answered Claude's questions:
+  ⎿  · Now that you know more - which backend framework? → Hono
+  ⎿  Interrupted · What should Claude do instead?
+
+> i want the concept of users so that even if someone gets access they have 
+to login to the app! i want it also web hostab 
+
+⏺ Got it - adding authentication and making it accessible as a web app too
+  (not just the iPad).
+
+  Updated Architecture
+
+  | Component | Choice                              |
+  |-----------|-------------------------------------|
+  | Frontend  | React + TypeScript (strict)         |
+  | Backend   | Hono + TypeScript                   |
+  | Database  | PostgreSQL                          |
+  | Auth      | User accounts with login            |
+  | iPad      | Capacitor native wrapper            |
+  | Web       | Same app, hosted for browser access |
+                                                       
+⏺ User answered Claude's questions:
+  ⎿  · How should authentication work? → Email/password
+     · Who can create accounts? → Invite only
+
+⏺ Perfect - so it works everywhere: iPad (Capacitor app), laptops (web
+  browser), any device really.
+
+  Final Project Spec: home-osx
+
+  | Layer    | Technology                                                |
+  |----------|-----------------------------------------------------------|
+  | Frontend | React 18 + TypeScript (strict) + Vite                     |
+  | Backend  | Hono + TypeScript (strict)                                |
+  | Database | PostgreSQL                                                |
+  | ORM      | Drizzle or Prisma                                         |
+  | Auth     | Email/password, invite-only, JWT sessions                 |
+  | iPad App | Capacitor (wraps the web app)                             |
+  | Hosting  | Backend on your homelab, frontend served from same server |
+
+  Monorepo structure:
+  home-osx/
+  ├── apps/
+  │   ├── web/          # React frontend
+  │   └── api/          # Hono backend
+  ├── packages/
+  │   └── shared/       # Shared types, validation schemas
+  ├── ios/              # Capacitor iOS project
+  └── package.json      # pnpm workspaces
+                                                                          
+⏺ User answered Claude's questions:
+  ⎿  · Which ORM for PostgreSQL? → drizzle plz
+     · Package manager preference? → pnpm
+     · Ready to create the repo and scaffold the project? → Yes, let's go!
+
+⏺ Let's build it!
+  ⎿  Interrupted · What should Claude do instead?
+
+> before you build it, i want to come up with a plan how we'll deploy this? 
+how should we do that? i want some options! 
+  ⎿  Interrupted · What should Claude do instead?
+
+> do i need to buy a domain? 
+
+⏺ Good thinking - let's sort out deployment before we write code.
+
+  Domain Question
+
+  You don't need a domain, but it depends on how you want to access it:
+
+  | Approach           | Domain Needed?   | How It Works
+                                        |
+  |--------------------|------------------|---------------------------------
+  --------------------------------------|
+  | Local IP only      | No               | Access via 192.168.x.x:3000 on
+  your network                           |
+  | Tailscale/ZeroTier | No               | VPN mesh - access from anywhere
+  via magic DNS (e.g., homelab.tailnet) |
+  | Cloudflare Tunnel  | Yes (free works) | Expose to internet securely, get
+   HTTPS                                |
+  | Port forwarding    | Optional         | Expose your IP directly (less
+  secure)                                 |
+  | Custom domain      | Yes ($10-15/yr)  | Pretty URL like
+  home.yourdomain.com                                   |
+                                                                           
+⏺ User answered Claude's questions:
+  ⎿  · Where do you need to access home-osx from? → Anywhere
+     · Do you already have a domain or Cloudflare account? → Yes, have a 
+     domain
+     · What's your homelab setup? → Nothing yet
+
+⏺ Since you need access from anywhere and have a domain - here are your
+  deployment options:
+
+  Deployment Options for home-osx
+
+  Option 1: Cloudflare Tunnel (Recommended)
+
+  [Internet] → [Cloudflare Edge] → [Tunnel] → [Your Homelab]
+  - Pros: No port forwarding, free HTTPS, DDoS protection, hides your home
+  IP
+  - Cons: Depends on Cloudflare, small added latency
+  - Cost: Free (with your domain on Cloudflare)
+
+  Option 2: Tailscale + Domain
+
+  [Your Devices w/ Tailscale] → [VPN Mesh] → [Your Homelab]
+  - Pros: Very secure (private network), easy setup, no public exposure
+  - Cons: Every device needs Tailscale installed, can't share link with
+  guests easily
+  - Cost: Free for personal use
+
+  Option 3: VPS Proxy
+
+  [Internet] → [Cheap VPS] → [WireGuard] → [Your Homelab]
+  - Pros: Full control, your homelab stays hidden
+  - Cons: More complex, VPS cost
+  - Cost: ~$5/month (Hetzner, DigitalOcean)
+
+  Option 4: Direct Port Forward + DDNS
+
+  [Internet] → [Your Router] → [Your Homelab]
+  - Pros: Simplest, no middleman
+  - Cons: Exposes your home IP, less secure, need DDNS if IP changes
+  - Cost: Free
+                                                                           
+⏺ User answered Claude's questions:
+  ⎿  · Which deployment approach appeals to you? → Tailscale
+     · What hardware will run this on your homelab? → I can probds run on my
+      mac mini homelab build im building so maybe dockerize it properly then
+      mwe can runit anywhgere we decide later, preobs kubes on that mac mini
+      cluter! 
+
+
+⏺ Smart - Docker-first means you can run it anywhere: Mac Mini now,
+  Kubernetes later, or even a cloud provider if you want.
+
+  Final Deployment Plan
+
+  Access: Tailscale (private mesh VPN)
+  - Install Tailscale on the Mac Mini + your devices
+  - Access via https://home-osx.your-tailnet:443 or similar
+  - No public exposure, very secure
+
+  Containerization: Docker Compose (K8s-ready)
+  home-osx/
+  ├── docker/
+  │   ├── Dockerfile.api      # Backend
+  │   ├── Dockerfile.web      # Frontend (nginx)
+  │   └── docker-compose.yml  # Local dev + prod
+  ├── k8s/                    # Helm chart or manifests (later)
+
+  Stack:
+  - api container: Hono backend
+  - web container: React app served via nginx
+  - postgres container: Database (or external managed)
+
+  This is portable - works on Docker Compose today, migrates to your K8s
+  cluster when ready.
+
+  ---
+  Complete home-osx Spec Summary
+
+  | Aspect       | Decision                              |
+  |--------------|---------------------------------------|
+  | Frontend     | React 18 + TypeScript (strict) + Vite |
+  | Backend      | Hono + TypeScript (strict)            |
+  | Database     | PostgreSQL                            |
+  | ORM          | Drizzle                               |
+  | Auth         | Email/password, invite-only           |
+  | Monorepo     | pnpm workspaces                       |
+  | iPad App     | Capacitor                             |
+  | Deploy       | Docker Compose → K8s later            |
+  | Access       | Tailscale                             |
+  | Integrations | Sonos, Spotify (start simple)         |
+  | UI           | Dark mode, wall/desk mountable        |
+                                                           
+⏺ User answered Claude's questions:
+  ⎿  · Ready to scaffold the project now? → Save spec first
+                                                                           
+⏺ User answered Claude's questions:
+  ⎿  · Where should I save the project spec? → ~/home-osx i created the 
+     folder!!
+
+⏺ Write(~/home-osx/SPEC.md)
+  ⎿  Wrote 98 lines to ../home-osx/SPEC.md                                 
+     # home-osx
+     A personal home dashboard and control panel for iPad/web.
+     ## Overview
+     Dark mode interface designed for wall or desk mounting on an iPad Pro
+     12.9" (4th gen), with full web access from any device. Open source,
+     self-hosted on homelab.
+     ## Tech Stack
+     … +88 lines (ctrl+o to expand)
+                                                                           
+⏺ User answered Claude's questions:
+  ⎿  · You said GitHub earlier but now GitLab - which one do you want? → 
+     GitHub
+
+⏺ Bash(cd /Users/calum/home-osx && git init)
+  ⎿  Initialized empty Git repository in /Users/calum/home-osx/.git/
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Bash(cd /Users/calum/home-osx && gh repo create calumpwebb/home-osx --public
+      --description "Personal home dashboard and control panel for iPad/web"
+      --source . --push)
+  ⎿  Error: Exit code 1
+     `--push` enabled but no commits found in /Users/calum/home-osx
+
+⏺ Bash(cd /Users/calum/home-osx && git add SPEC.md && git commit -m "Initial
+      commit: project specification…)
+  ⎿  [main (root-commit) a793a41] Initial commit: project specification
+      1 file changed, 97 insertions(+)
+      create mode 100644 SPEC.md
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Bash(cd /Users/calum/home-osx && gh repo create calumpwebb/home-osx --public
+      --description "Personal home dashboard and control panel for iPad/web"
+      --source . --push)
+  ⎿  https://github.com/calumpwebb/home-osx       
+     branch 'main' set up to track 'origin/main'.
+     To https://github.com/calumpwebb/home-osx.git
+      * [new branch]      HEAD -> main
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Done!
+
+  Repo created: https://github.com/calumpwebb/home-osx
+
+  Spec saved and pushed. Ready to scaffold the actual project structure when
+   you are!
+
+> btw theme style, i want a an apple style interface, take inspiration from 
+`sign in with apple` button style, bnut i want pure black backgrounds, and 
+bold colors, i want rectangle interfaces with a good corner radius like 
+apple does it, very modern design, very minimal and is purpose built for the
+ ipad 12.7" i have! 
+
+⏺ Love it - that's a strong design direction. Let me add a design system
+  section to the spec.
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 98 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 125 additions and 1 removal        
+        71    
+        72    ## Target Device
+        73    
+        74 -  - **Primary:** iPad Pro 12.9" 4th Generation
+        74 +  - **Primary:** iPad Pro 12.9" 4th Generation
+           +   (2732 × 2048 px @ 264 ppi)
+        75    - **Mode:** Kiosk mode via Capacitor native app
+        76    - **Mount:** Wall or desk mounted
+        77    - **Secondary:** Any web browser (laptops, phones)
+        78    
+        79 +  ## Design System
+        80 +  
+        81 +  ### Philosophy
+        82 +  Apple-inspired, minimal, purpose-built interface. Takes 
+           + cues from "Sign in with Apple" button aesthetics - clean, 
+           + confident, modern.
+        83 +  
+        84 +  ### Colors
+        85 +  
+        86 +  ```css
+        87 +  /* Backgrounds */
+        88 +  --bg-primary: #000000;        /* Pure black - main 
+           + background */
+        89 +  --bg-elevated: #1C1C1E;       /* Elevated surfaces, cards 
+           + */
+        90 +  --bg-secondary: #2C2C2E;      /* Secondary containers */
+        91 +  
+        92 +  /* Text */
+        93 +  --text-primary: #FFFFFF;      /* Primary text */
+        94 +  --text-secondary: #8E8E93;    /* Secondary/muted text */
+        95 +  --text-tertiary: #48484A;     /* Disabled/hint text */
+        96 +  
+        97 +  /* Accent Colors (bold, vibrant) */
+        98 +  --accent-blue: #0A84FF;       /* Primary actions */
+        99 +  --accent-green: #30D158;      /* Success, active states */
+       100 +  --accent-orange: #FF9F0A;     /* Warnings, attention */
+       101 +  --accent-red: #FF453A;        /* Errors, destructive */
+       102 +  --accent-purple: #BF5AF2;     /* Special features */
+       103 +  --accent-teal: #64D2FF;       /* Info, links */
+       104 +  
+       105 +  /* Borders & Dividers */
+       106 +  --border-subtle: #38383A;     /* Subtle separators */
+       107 +  --border-prominent: #48484A;  /* More visible borders */
+       108 +  ```
+       109 +  
+       110 +  ### Typography
+       111 +  
+       112 +  - **Font Family:** SF Pro Display / SF Pro Text (system 
+           + font on Apple devices)
+       113 +  - **Fallback:** -apple-system, BlinkMacSystemFont, "Segoe 
+           + UI", sans-serif
+       114 +  - **Weights:** Regular (400), Medium (500), Semibold (600),
+           +  Bold (700)
+       115 +  
+       116 +  | Element | Size | Weight |
+       117 +  |---------|------|--------|
+       118 +  | Page Title | 34px | Bold |
+       119 +  | Section Header | 22px | Semibold |
+       120 +  | Card Title | 17px | Semibold |
+       121 +  | Body | 17px | Regular |
+       122 +  | Caption | 13px | Regular |
+       123 +  | Button | 17px | Semibold |
+       124 +  
+       125 +  ### Spacing & Layout
+       126 +  
+       127 +  - **Base unit:** 8px
+       128 +  - **Corner radius:** 12px (cards), 10px (buttons), 8px 
+           + (inputs), 20px (modals)
+       129 +  - **Card padding:** 16px
+       130 +  - **Grid gap:** 16px
+       131 +  - **Safe areas:** Respect iPad safe areas for edge content
+       132 +  
+       133 +  ### Components
+       134 +  
+       135 +  #### Cards / Widgets
+       136 +  ```
+       137 +  - Background: var(--bg-elevated)
+       138 +  - Border-radius: 12px
+       139 +  - Padding: 16px
+       140 +  - No borders (use elevation/color difference)
+       141 +  - Subtle shadow optional: 0 2px 8px rgba(0,0,0,0.3)
+       142 +  ```
+       143 +  
+       144 +  #### Buttons (Apple-style)
+       145 +  ```
+       146 +  Primary:
+       147 +  - Background: var(--accent-blue) or white
+       148 +  - Text: white or black
+       149 +  - Border-radius: 10px
+       150 +  - Height: 50px
+       151 +  - Font: 17px Semibold
+       152 +  - Full-width on mobile, auto on desktop
+       153 +  
+       154 +  Secondary:
+       155 +  - Background: var(--bg-secondary)
+       156 +  - Text: var(--text-primary)
+       157 +  - Same dimensions as primary
+       158 +  ```
+       159 +  
+       160 +  #### Input Fields
+       161 +  ```
+       162 +  - Background: var(--bg-secondary)
+       163 +  - Border: none (or 1px var(--border-subtle) on focus)
+       164 +  - Border-radius: 10px
+       165 +  - Height: 50px
+       166 +  - Padding: 0 16px
+       167 +  - Placeholder: var(--text-tertiary)
+       168 +  ```
+       169 +  
+       170 +  ### iPad 12.9" Layout
+       171 +  
+       172 +  ```
+       173 +  ┌─────────────────────────────────────────────────────────┐
+       174 +  │  Status Bar Area (respect safe area)                    │
+       175 +  ├─────────────────────────────────────────────────────────┤
+       176 +  │                                                         │
+       177 +  │   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐   │
+       178 +  │   │ Weather │  │  Time   │  │  Music  │  │ Widget  │   │
+       179 +  │   │         │  │         │  │         │  │         │   │
+       180 +  │   └─────────┘  └─────────┘  └─────────┘  └─────────┘   │
+       181 +  │                                                         │
+       182 +  │   ┌───────────────────────┐  ┌───────────────────────┐ │
+       183 +  │   │                       │  │                       │ │
+       184 +  │   │    Large Widget       │  │    Large Widget       │ │
+       185 +  │   │    (e.g., Sonos)      │  │    (e.g., Lights)     │ │
+       186 +  │   │                       │  │                       │ │
+       187 +  │   └───────────────────────┘  └───────────────────────┘ │
+       188 +  │                                                         │
+       189 +  │   ┌─────────────────────────────────────────────────┐  │
+       190 +  │   │              Quick Actions Bar                   │  │
+       191 +  │   └─────────────────────────────────────────────────┘  │
+       192 +  │                                                         │
+       193 +  └─────────────────────────────────────────────────────────┘
+       194 +  ```
+       195 +  
+       196 +  ### Animations
+       197 +  
+       198 +  - **Duration:** 200-300ms for micro-interactions
+       199 +  - **Easing:** `cubic-bezier(0.25, 0.1, 0.25, 1)` (Apple's 
+           + default)
+       200 +  - **Principles:** Subtle, purposeful, never distracting
+       201 +  - **Touch feedback:** Scale down slightly on press (0.97)
+       202 +  
+       203    ## Development
+       204    
+       205    ```bash
+
+⏺ Bash(cd /Users/calum/home-osx && git add SPEC.md && git commit -m "Add design
+      system: Apple-inspired dark UI spec…)
+  ⎿  [main cd7fc2d] Add design system: Apple-inspired dark UI spec
+      1 file changed, 125 insertions(+), 1 deletion(-)
+     To https://github.com/calumpwebb/home-osx.git
+        a793a41..cd7fc2d  main -> main
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Done! Added a full design system to the spec:
+
+  Key design decisions captured:
+  - Pure black #000000 background with elevated surfaces in dark grays
+  - Apple's iOS color palette for accents (the bold blues, greens, oranges)
+  - SF Pro system font with Apple's type scale (34px titles down to 13px
+  captions)
+  - Corner radii: 12px cards, 10px buttons, 20px modals
+  - 50px touch targets for buttons/inputs (Apple's minimum)
+  - Touch feedback: subtle scale-down on press
+  - Basic widget grid layout for the iPad
+
+  Pushed to GitHub. Ready to scaffold the actual code whenever you want!
+
+> the front is a dumb client :) the app and web view, the auth home-osx ui 
+gets is from JWT, we want standard practice here and we want every endpoint 
+setup to accept this, one login endpoint and then jwt in headers always that
+ are validated in the api 
+
+⏺ Got it - stateless JWT auth, thin client. Let me update the spec with the
+  auth architecture.
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 15 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 61 additions and 4 removals        
+        46    
+        47    ## Authentication
+        48    
+        49 -  - Email/password authentication
+        50 -  - Invite-only registration (admin creates accounts)
+        51 -  - JWT-based sessions
+        52 -  - All routes protected by default
+        49 +  ### Architecture
+        50 +  ```
+        51 +  ┌─────────────────┐         ┌─────────────────┐
+        52 +  │   Dumb Client   │         │    Hono API     │
+        53 +  │  (React App)    │         │                 │
+        54 +  ├─────────────────┤         ├─────────────────┤
+        55 +  │                 │  POST   │                 │
+        56 +  │  Login Form ────┼────────►│  /api/auth/login│
+        57 +  │                 │         │       │         │
+        58 +  │                 │◄────────┼───────┘         │
+        59 +  │  Store JWT      │  JWT    │  Validate creds │
+        60 +  │  in memory      │         │  Return JWT     │
+        61 +  │                 │         │                 │
+        62 +  │                 │  GET    │                 │
+        63 +  │  Any Request ───┼────────►│  /api/*         │
+        64 +  │  Authorization: │         │       │         │
+        65 +  │  Bearer <jwt>   │         │  Auth Middleware│
+        66 +  │                 │         │  Validates JWT  │
+        67 +  │                 │◄────────┼───────┘         │
+        68 +  │                 │  Data   │                 │
+        69 +  └─────────────────┘         └─────────────────┘
+        70 +  ```
+        71    
+        72 +  ### Principles
+        73 +  - **Stateless:** No server-side sessions, JWT contains all 
+           + auth info
+        74 +  - **Dumb client:** Frontend only renders UI, all logic in 
+           + API
+        75 +  - **Single login endpoint:** `POST /api/auth/login` returns
+           +  JWT
+        76 +  - **Bearer token:** All requests include `Authorization: 
+           + Bearer <token>`
+        77 +  - **Middleware validation:** Every `/api/*` route (except 
+           + login) validates JWT
+        78 +  
+        79 +  ### JWT Structure
+        80 +  ```json
+        81 +  {
+        82 +    "sub": "user-uuid",
+        83 +    "email": "user@example.com",
+        84 +    "role": "admin" | "user",
+        85 +    "iat": 1699900000,
+        86 +    "exp": 1699986400
+        87 +  }
+        88 +  ```
+        89 +  
+        90 +  ### Endpoints
+        91 +  | Method | Endpoint | Auth | Description |
+        92 +  |--------|----------|------|-------------|
+        93 +  | POST | `/api/auth/login` | No | Email/password → JWT |
+        94 +  | POST | `/api/auth/refresh` | Yes | Refresh token 
+           + (optional) |
+        95 +  | GET | `/api/auth/me` | Yes | Get current user info |
+        96 +  | POST | `/api/admin/invite` | Admin | Create invite for 
+           + new user |
+        97 +  | POST | `/api/auth/register` | Invite | Register with 
+           + invite token |
+        98 +  
+        99 +  ### Token Storage (Client)
+       100 +  - **Store in memory** (React state/context) - most secure
+       101 +  - **Optional:** `localStorage` for persistence across tabs 
+           + (less secure but practical)
+       102 +  - **Never:** cookies (not needed for this architecture)
+       103 +  
+       104 +  ### Security
+       105 +  - JWT signed with HS256 or RS256
+       106 +  - Short expiry (15min-1hr) with optional refresh token
+       107 +  - HTTPS only (Tailscale handles this)
+       108 +  - Rate limiting on login endpoint
+       109 +  - Invite tokens single-use and time-limited
+       110 +  
+       111    ## Features
+       112    
+       113    ### MVP / Phase 1
+
+⏺ Bash(cd /Users/calum/home-osx && git add SPEC.md && git commit -m "Add JWT
+      auth architecture spec…)
+  ⎿  [main 02467cf] Add JWT auth architecture spec    
+      1 file changed, 61 insertions(+), 4 deletions(-)
+     To https://github.com/calumpwebb/home-osx.git
+        cd7fc2d..02467cf  main -> main
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Done. Auth architecture captured:
+
+  POST /api/auth/login  →  returns JWT
+          ↓
+  All other requests include:
+  Authorization: Bearer <jwt>
+          ↓
+  Hono middleware validates on every route
+
+  Key points in spec:
+  - Single login endpoint, everything else requires valid JWT
+  - Middleware pattern - one place validates all requests
+  - Stateless (no sessions table needed)
+  - JWT contains: sub (user id), email, role, exp
+  - Client stores token in memory (or localStorage for persistence)
+
+  Anything else to nail down before we scaffold?
+
+> qiof we do the jwt, i want to make sure the user on the ipad doesn't have 
+to sign up 100 times! also we should be 1password input field complianet for
+ email and password and allow good standard password practices! 
+
+⏺ Good points - UX matters! Let me clarify the persistent login approach:
+                                                                
+⏺ User answered Claude's questions:
+  ⎿  · How long should a login stay valid on the iPad? → 90 days
+
+⏺ Perfect - 90 days with refresh tokens. Let me update the spec with the
+  token strategy and password manager compliance.
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 35 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  (No changes)
+
+> in the home console id like to see WHO is logged in somewhere, maybe keep 
+a pin in that for later
+
++ don't check i am pwnd or that, and also don't show a stgrenght, just have 
+a minimum 16 character limit 
+
+⏺ Got it - simpler password policy and a "who's logged in" feature for
+  later. Let me update:
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 45 additions and 6 removals        
+        96    | POST | `/api/admin/invite` | Admin | Create invite for 
+             new user |
+        97    | POST | `/api/auth/register` | Invite | Register with 
+             invite token |
+        98    
+        99 -  ### Token Storage (Client)
+       100 -  - **Store in memory** (React state/context) - most secure
+       101 -  - **Optional:** `localStorage` for persistence across tabs 
+           - (less secure but practical)
+       102 -  - **Never:** cookies (not needed for this architecture)
+        99 +  ### Token Strategy (Persistent Login)
+       100 +  ```
+       101 +  Login returns:
+       102 +  ├── Access Token (15 min) → used for API calls
+       103 +  └── Refresh Token (90 days) → used to get new access token
+       104    
+       105 +  On API call:
+       106 +  1. Use access token
+       107 +  2. If 401 expired → call /api/auth/refresh
+       108 +  3. Get new access token, retry original request
+       109 +  4. If refresh fails → redirect to login
+       110 +  ```
+       111 +  
+       112 +  - **Access Token:** 15 min, stored in memory
+       113 +  - **Refresh Token:** 90 days, stored in localStorage (web) 
+           + or Capacitor Secure Storage (iPad)
+       114 +  - **Result:** User logs in once, stays logged in for 90 
+           + days
+       115 +  
+       116 +  ### Token Storage
+       117 +  | Token | Web | iPad (Capacitor) |
+       118 +  |-------|-----|------------------|
+       119 +  | Access | Memory (React state) | Memory (React state) |
+       120 +  | Refresh | `localStorage` | `@capacitor/secure-storage` |
+       121 +  
+       122    ### Security
+       123 -  - JWT signed with HS256 or RS256
+       124 -  - Short expiry (15min-1hr) with optional refresh token
+       123 +  - JWT signed with HS256
+       124 +  - Access token: 15 min expiry
+       125 +  - Refresh token: 90 days expiry
+       126    - HTTPS only (Tailscale handles this)
+       127    - Rate limiting on login endpoint
+       128 +  - Refresh tokens stored in DB (can be revoked)
+       129    - Invite tokens single-use and time-limited
+       130    
+       131 +  ### Password Manager Compliance (1Password, etc.)
+       132 +  
+       133 +  ```html
+       134 +  <form autocomplete="on">
+       135 +    <input type="email" name="email" autocomplete="email" />
+       136 +    <input type="password" name="password" 
+           + autocomplete="current-password" />
+       137 +  </form>
+       138 +  ```
+       139 +  
+       140 +  - Use proper `<form>` element
+       141 +  - Correct `type` and `autocomplete` attributes
+       142 +  - Never disable paste on password fields
+       143 +  - Registration uses `autocomplete="new-password"`
+       144 +  
+       145 +  ### Password Policy
+       146 +  - Minimum 16 characters
+       147 +  - No other complexity requirements
+       148 +  - Allow paste in password fields
+       149 +  
+       150    ## Features
+       151    
+       152    ### MVP / Phase 1
+
+⏺ Now let me add the "who's logged in" to the future features:
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 25 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 4 additions and 1 removal          
+       162    
+       163    ### Phase 3 - Expansion
+       164    - [ ] Additional smart home integrations
+       165 -  - [ ] AI assistant (pinned for later)
+       165    - [ ] Home Assistant integration (if needed)
+       166    
+       167 +  ### Pinned for Later
+       168 +  - [ ] AI assistant
+       169 +  - [ ] "Who's logged in" widget on home screen (show active 
+           + sessions/users)
+       170 +  
+       171    ## Target Device
+       172    
+       173    - **Primary:** iPad Pro 12.9" 4th Generation (2732 × 2048 
+             px @ 264 ppi)
+
+⏺ Bash(cd /Users/calum/home-osx && git add SPEC.md && git commit -m "Add
+      persistent login + password manager compliance…)
+  ⎿  [main f7f44e9] Add persistent login + password manager compliance
+      1 file changed, 49 insertions(+), 7 deletions(-)
+     To https://github.com/calumpwebb/home-osx.git
+        02467cf..f7f44e9  main -> main
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Done. Updated spec:
+
+  Persistent login:
+  - Access token: 15 min (in memory)
+  - Refresh token: 90 days (localStorage/secure storage)
+  - Silent refresh on expiry - user stays logged in
+
+  Password policy:
+  - 16 characters minimum
+  - That's it. No complexity nonsense.
+
+  1Password compliant:
+  - Proper autocomplete attributes
+  - Real <form> elements
+  - Paste always allowed
+
+  Pinned for later:
+  - AI assistant
+  - "Who's logged in" widget
+
+  Anything else before we scaffold the project?
+
+> we should always seed the db user
+
+`calumpeterwebb@icloud.com`
+
+when users sign up (via invite from the admin dashboard), they enter a 
+password on first login! that way we can seed the user with 
+calumpeterwebb@icloud.com and no password and i can just enter the first 
+time my self!
+
+when you log into a new device, you need to save a device name (something 
+like iPad or Calum' 
+  ⎿  Interrupted · What should Claude do instead?
+
+> we should always seed the db user
+
+`calumpeterwebb@icloud.com`
+
+when users sign up (via invite from the admin dashboard), they enter a 
+password on first login! that way we can seed the user with 
+calumpeterwebb@icloud.com and no password and i can just enter the first 
+time my self!
+
+when you log into a new device, you need to save a device name (something 
+like iPad or Calum's mac!)
+
+you also need to provide a name e.g. Calum,  Christie.
+
+Another user of this system is `christie.cabus@yahoo.com` which is my 
+girlfriend, Christie (full name Christie Cabus but we're fine, we want first
+ and last name :))
+
+Can u add note to check if the wifi we get has an api we can call, to see 
+data! 
+
+⏺ Got it! Let me update the spec with the user seeding, first-login flow,
+  device tracking, and the WiFi API note.
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 15 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 72 additions and 2 removals        
+        87    }
+        88    ```
+        89    
+        90 +  ### User Model
+        91 +  ```typescript
+        92 +  interface User {
+        93 +    id: string;           // UUID
+        94 +    email: string;
+        95 +    firstName: string;
+        96 +    lastName: string;
+        97 +    passwordHash: string | null;  // null until first login
+        98 +    role: 'admin' | 'user';
+        99 +    createdAt: Date;
+       100 +    updatedAt: Date;
+       101 +  }
+       102 +  
+       103 +  interface Device {
+       104 +    id: string;           // UUID
+       105 +    userId: string;
+       106 +    name: string;         // e.g., "iPad", "Calum's Mac"
+       107 +    refreshToken: string;
+       108 +    lastUsedAt: Date;
+       109 +    createdAt: Date;
+       110 +  }
+       111 +  ```
+       112 +  
+       113 +  ### Seed Users (Database Migration)
+       114 +  ```typescript
+       115 +  // Always seeded on fresh DB
+       116 +  const seedUsers = [
+       117 +    {
+       118 +      email: 'calumpeterwebb@icloud.com',
+       119 +      firstName: 'Calum',
+       120 +      lastName: 'Webb',
+       121 +      role: 'admin',
+       122 +      passwordHash: null,  // Set on first login
+       123 +    },
+       124 +    {
+       125 +      email: 'christie.cabus@yahoo.com',
+       126 +      firstName: 'Christie',
+       127 +      lastName: 'Cabus',
+       128 +      role: 'user',
+       129 +      passwordHash: null,  // Set on first login
+       130 +    },
+       131 +  ];
+       132 +  ```
+       133 +  
+       134 +  ### First Login Flow
+       135 +  ```
+       136 +  1. User enters email
+       137 +  2. If user exists AND passwordHash is null:
+       138 +     → Show "Set your password" screen
+       139 +     → User creates password (16 char min)
+       140 +     → Save passwordHash, proceed to device naming
+       141 +  3. If user exists AND has password:
+       142 +     → Normal login flow
+       143 +  4. If user doesn't exist:
+       144 +     → "No account found" error
+       145 +  ```
+       146 +  
+       147 +  ### Device Registration
+       148 +  On every new login (no valid refresh token for this 
+           + device):
+       149 +  ```
+       150 +  1. Login succeeds
+       151 +  2. Prompt: "Name this device" (e.g., "iPad", "Calum's Mac")
+       152 +  3. Save device with name + refresh token
+       153 +  4. Device name shown in "Who's logged in" widget later
+       154 +  ```
+       155 +  
+       156    ### Endpoints
+       157    | Method | Endpoint | Auth | Description |
+       158    |--------|----------|------|-------------|
+       159 -  | POST | `/api/auth/login` | No | Email/password → JWT |
+       160 -  | POST | `/api/auth/refresh` | Yes | Refresh token 
+           - (optional) |
+       159 +  | POST | `/api/auth/login` | No | Email/password → JWT 
+           +  + refresh |
+       160 +  | POST | `/api/auth/setup-password` | No | First-time 
+           + password setup |
+       161 +  | POST | `/api/auth/refresh` | Refresh | Get new access 
+           + token |
+       162 +  | POST | `/api/auth/register-device` | Yes | Save device 
+           + name |
+       163    | GET | `/api/auth/me` | Yes | Get current user info |
+       164 +  | GET | `/api/auth/devices` | Yes | List user's devices |
+       165 +  | DELETE | `/api/auth/devices/:id` | Yes | Revoke a device 
+           + |
+       166    | POST | `/api/admin/invite` | Admin | Create invite for 
+             new user |
+       167    | POST | `/api/auth/register` | Invite | Register with 
+             invite token |
+       168    
+
+⏺ Now let me add the WiFi API note to the integrations:
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 20 lines
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 15 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 3 additions                        
+       238    - [ ] AI assistant
+       239    - [ ] "Who's logged in" widget on home screen (show active 
+             sessions/users)
+       240    
+       241 +  ### Research TODOs
+       242 +  - [ ] Check if WiFi router has an API we can call to get 
+           + network data (connected devices, bandwidth, etc.)
+       243 +  
+       244    ## Target Device
+       245    
+       246    - **Primary:** iPad Pro 12.9" 4th Generation (2732 × 2048 
+             px @ 264 ppi)
+
+⏺ Bash(cd /Users/calum/home-osx && git add SPEC.md && git commit -m "Add user
+      model, seed users, first-login flow, device tracking…)
+  ⎿ [main b2165d6] Add user model, seed users, first-login flow, device tra
+    cking
+     1 file changed, 75 insertions(+), 2 deletions(-)
+    … +2 lines (ctrl+o to expand)
+
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Done. Added to spec:
+
+  Seed users:
+  - calumpeterwebb@icloud.com - Calum Webb (admin)
+  - christie.cabus@yahoo.com - Christie Cabus (user)
+  - Both start with no password
+
+  First login flow:
+  1. Enter email
+  2. If no password set → "Set your password" screen
+  3. Create password (16 char min)
+  4. Name your device → done
+
+  Device tracking:
+  - Each login saves device name ("iPad", "Calum's Mac")
+  - Can list devices, revoke sessions
+  - Powers the "Who's logged in" widget later
+
+  Research TODO:
+  - Check WiFi router API for network data
+
+  Anything else before we start building?
+
+> we'll need an email integration :) and we need to write a guide on how to 
+setup tailscale to get this to work, put a pin in those too 
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 2 additions                        
+       237    ### Pinned for Later
+       238    - [ ] AI assistant
+       239    - [ ] "Who's logged in" widget on home screen (show active 
+             sessions/users)
+       240 +  - [ ] Email integration (for invites, notifications, etc.)
+       241 +  - [ ] Write Tailscale setup guide (how to configure for 
+           + home-osx access)
+       242    
+       243    ### Research TODOs
+       244    - [ ] Check if WiFi router has an API we can call to get 
+             network data (connected devices, bandwidth, etc.)
+
+⏺ Bash(cd /Users/calum/home-osx && git add SPEC.md && git commit -m "Pin: email
+      integration + Tailscale setup guide…)
+  ⎿  [main c6c4545] Pin: email integration + Tailscale setup guide
+      1 file changed, 2 insertions(+)
+     To https://github.com/calumpwebb/home-osx.git
+        b2165d6..c6c4545  main -> main
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Done. Pinned:
+  - Email integration
+  - Tailscale setup guide
+
+  Ready to scaffold?
+
+> i want everything runnning in tilt for dev bntw :) so docker files for 
+stuff then tilt for dev :) 
+
+⏺ Nice - Tilt for hot-reload dev with Docker. Let me add that to the spec.
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 20 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 41 additions and 2 removals      
+       17    | **Auth** | Email/password, invite-only, JWT sessions |
+       18    | **Monorepo** | pnpm workspaces |
+       19    | **iPad App** | Capacitor (WebView wrapper) |
+       20 -  | **Containerization** | Docker Compose (K8s-ready) |
+       20 +  | **Containerization** | Docker + Tilt (dev), K8s (prod) |
+       21    
+       22    ## Architecture
+       23    
+     ...
+       33    │   ├── Dockerfile.api
+       34    │   ├── Dockerfile.web
+       35    │   └── docker-compose.yml
+       36 -  ├── k8s/                  # Kubernetes manifests (future)
+       36 +  ├── k8s/                  # Kubernetes manifests (prod)
+       37 +  ├── Tiltfile              # Tilt config for local dev
+       38    └── package.json          # pnpm workspaces root
+       39    ```
+       40    
+       41 +  ## Local Development (Tilt)
+       42 +  
+       43 +  Tilt orchestrates local dev with hot-reload for all 
+          + services:
+       44 +  
+       45 +  ```bash
+       46 +  # Start everything
+       47 +  tilt up
+       48 +  
+       49 +  # Dashboard at http://localhost:10350
+       50 +  ```
+       51 +  
+       52 +  ### Tiltfile Overview
+       53 +  ```python
+       54 +  # Tiltfile
+       55 +  docker_build('home-osx-api', './apps/api', 
+          + dockerfile='./docker/Dockerfile.api')
+       56 +  docker_build('home-osx-web', './apps/web', 
+          + dockerfile='./docker/Dockerfile.web')
+       57 +  
+       58 +  # Live reload - sync code without full rebuild
+       59 +  docker_build('home-osx-api', './apps/api',
+       60 +    live_update=[
+       61 +      sync('./apps/api/src', '/app/src'),
+       62 +      run('pnpm install', 
+          + trigger=['./apps/api/package.json']),
+       63 +    ]
+       64 +  )
+       65 +  
+       66 +  # Port forwards
+       67 +  k8s_resource('api', port_forwards='3001:3001')
+       68 +  k8s_resource('web', port_forwards='3000:3000')
+       69 +  k8s_resource('postgres', port_forwards='5432:5432')
+       70 +  ```
+       71 +  
+       72 +  ### Services in Dev
+       73 +  | Service | Port | Description |
+       74 +  |---------|------|-------------|
+       75 +  | web | 3000 | React frontend (Vite HMR) |
+       76 +  | api | 3001 | Hono backend |
+       77 +  | postgres | 5432 | PostgreSQL database |
+       78 +  
+       79    ## Deployment
+       80    
+       81    - **Network Access:** Tailscale (private mesh VPN)
+
+⏺ Bash(cd /Users/calum/home-osx && git add SPEC.md && git commit -m "Add Tilt
+      for local development…)
+  ⎿  [main 7d14d70] Add Tilt for local development    
+      1 file changed, 41 insertions(+), 2 deletions(-)
+     To https://github.com/calumpwebb/home-osx.git
+        c6c4545..7d14d70  main -> main
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Good question! Here are relevant Apple APIs for home-osx:
+
+  Potentially Useful Apple APIs
+
+  | API                | What it does               | Relevant?
+                           |
+  |--------------------|----------------------------|-----------------------
+  -------------------------|
+  | WeatherKit         | Apple's weather service    | Yes - for weather
+  widget                       |
+  | HomeKit            | Smart home device control  | Maybe - alternative to
+   direct integrations     |
+  | APNs               | Push notifications to iPad | Yes - for alerts when
+  app is backgrounded      |
+  | MusicKit           | Apple Music control        | Only if you use Apple
+  Music (you said Spotify) |
+  | Sign in with Apple | Auth                       | No - you want
+  email/password                   |
+
+  Most relevant:
+
+  1. WeatherKit - Free tier: 500k calls/month. High quality data, native to
+  Apple ecosystem.
+  2. HomeKit - If your smart devices support HomeKit, you could control them
+   all through one API instead of building separate integrations. Many
+  Sonos, lights, etc. support it.
+  3. APNs (Push Notifications) - If you want the iPad to alert you even when
+   home-osx isn't in foreground (though in kiosk mode it always will be).
+                                                                      
+⏺ User answered Claude's questions:
+  ⎿  · Should we add any Apple APIs to the research list? → WeatherKit
+  ⎿  Interrupted · What should Claude do instead?
+
+> some scratch pad ideas for stuff that we could build:
+1. home dashboard that shows minimal date, some tiles we can customize 
+(maybe have a concept of an "app" inside the home-osx, so we can write an 
+"spotify" app and "sonos" app, and kinda like act like an osx :) that way we
+ can do a LOT more, we want to design this, thiuungs like lewtting the apps 
+send notifications tot he "home-osx", we probs want to use convex db, taht 
+way we gget as lot of types for free
+
+i want no split brain, types should be in a single place and shared! 
+
+i want simple concepts that work well...
+
+2. spotify app taht auto places on sonos zones
+3. view wifi stats, things like gb used, devicesc connected, websites 
+devices hit, etc etc
+4. view dreame vacuum status (l50 ultra if it has an API)
+5. lights integration with philips hue? 
+
+⏺ Love the "apps within home-osx" concept - makes it extensible. And Convex
+  is interesting - it would simplify a lot.
+
+  Let me clarify the Convex change since it's a big architectural shift:
+
+  Convex vs Current Stack
+
+  | Aspect    | Current (Hono + Postgres + Drizzle) | Convex
+                      |
+  |-----------|-------------------------------------|-----------------------
+  --------------------|
+  | Types     | Shared package, manual sync         | Auto-generated from
+  schema, single source |
+  | Real-time | Build yourself (WebSockets)         | Built-in, automatic
+                      |
+  | API       | Write endpoints manually            | Functions auto-exposed
+                      |
+  | DB        | Self-hosted Postgres                | Convex-hosted (or
+  self-host)              |
+  | Auth      | Build JWT flow ourselves            | Built-in helpers
+                      |
+  | Hosting   | Your homelab                        | Convex cloud (free
+  tier) or self-host     |
+                                                                           
+⏺ User answered Claude's questions:
+  ⎿  · Switch to Convex as the backend? → Yes, use Convex
+     · For the 'apps' concept - how should apps work? → Built-in modules but
+      i want "platform" code i can control so i can inject code or do thigns
+      i want later to all apps or allow them to access apis!
+
+⏺ Got it - Convex + platform layer with built-in app modules. Let me update
+  the spec with this new architecture and the scratchpad ideas.
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 45 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 87 additions and 38 removals       
+        11    | Layer | Technology |
+        12    |-------|------------|
+        13    | **Frontend** | React 18 + TypeScript (strict) + Vite |
+        14 -  | **Backend** | Hono + TypeScript (strict) |
+        15 -  | **Database** | PostgreSQL |
+        16 -  | **ORM** | Drizzle |
+        14 +  | **Backend** | Convex (real-time, auto-generated types) |
+        15 +  | **Database** | Convex (built-in) |
+        16    | **Auth** | Email/password, invite-only, JWT sessions |
+        17    | **Monorepo** | pnpm workspaces |
+        18    | **iPad App** | Capacitor (WebView wrapper) |
+        19    | **Containerization** | Docker + Tilt (dev), K8s (prod) |
+        20    
+        21 +  ### Why Convex?
+        22 +  - **Single source of types** - Schema defines types, shared
+           +  everywhere (no split brain)
+        23 +  - **Real-time by default** - Live updates without WebSocket
+           +  boilerplate
+        24 +  - **TypeScript end-to-end** - Full type safety from DB to 
+           + UI
+        25 +  - **No API layer to write** - Functions are auto-exposed
+        26 +  
+        27    ## Architecture
+        28    
+        29    ```
+        30    home-osx/
+        31    ├── apps/
+        32 -  │   ├── web/              # React frontend (Vite)
+        33 -  │   └── api/              # Hono backend
+        34 -  ├── packages/
+        35 -  │   └── shared/           # Shared types, validation 
+           - schemas (Zod)
+        36 -  ├── ios/                  # Capacitor iOS project
+        32 +  │   └── web/                    # React frontend (Vite)
+        33 +  ├── convex/                     # Convex backend
+        34 +  │   ├── schema.ts               # Single source of truth 
+           + for types
+        35 +  │   ├── auth.ts                 # Auth functions
+        36 +  │   ├── platform/               # Platform core (shared 
+           + APIs for apps)
+        37 +  │   │   ├── notifications.ts
+        38 +  │   │   ├── settings.ts
+        39 +  │   │   └── hooks.ts            # Lifecycle hooks apps can 
+           + use
+        40 +  │   └── apps/                   # Built-in app modules
+        41 +  │       ├── spotify/
+        42 +  │       ├── sonos/
+        43 +  │       ├── weather/
+        44 +  │       ├── hue/
+        45 +  │       ├── vacuum/
+        46 +  │       └── wifi/
+        47 +  ├── ios/                        # Capacitor iOS project
+        48    ├── docker/
+        49 -  │   ├── Dockerfile.api
+        50 -  │   ├── Dockerfile.web
+        51 -  │   └── docker-compose.yml
+        52 -  ├── k8s/                  # Kubernetes manifests (prod)
+        53 -  ├── Tiltfile              # Tilt config for local dev
+        54 -  └── package.json          # pnpm workspaces root
+        49 +  │   └── Dockerfile.web
+        50 +  ├── k8s/                        # Kubernetes manifests 
+           + (prod)
+        51 +  ├── Tiltfile                    # Tilt config for local dev
+        52 +  └── package.json                # pnpm workspaces root
+        53    ```
+        54    
+        55 -  ## Local Development (Tilt)
+        55 +  ## Apps Platform
+        56    
+        57 -  Tilt orchestrates local dev with hot-reload for all 
+           - services:
+        57 +  home-osx is like a mini OS - the platform provides core 
+           + services that apps can use.
+        58    
+        59 -  ```bash
+        60 -  # Start everything
+        61 -  tilt up
+        59 +  ### Platform Core (convex/platform/)
+        60 +  ```typescript
+        61 +  // Platform APIs available to all apps
+        62 +  interface Platform {
+        63 +    // Notifications
+        64 +    notify(message: string, options?: NotifyOptions): void;
+        65    
+        66 -  # Dashboard at http://localhost:10350
+        66 +    // Settings storage (per-app)
+        67 +    getSetting<T>(key: string): T | null;
+        68 +    setSetting<T>(key: string, value: T): void;
+        69 +  
+        70 +    // Current user
+        71 +    getCurrentUser(): User;
+        72 +  
+        73 +    // Lifecycle hooks
+        74 +    onAppMount(callback: () => void): void;
+        75 +    onAppUnmount(callback: () => void): void;
+        76 +  }
+        77    ```
+        78    
+        79 -  ### Tiltfile Overview
+        80 -  ```python
+        81 -  # Tiltfile
+        82 -  docker_build('home-osx-api', './apps/api', 
+           - dockerfile='./docker/Dockerfile.api')
+        83 -  docker_build('home-osx-web', './apps/web', 
+           - dockerfile='./docker/Dockerfile.web')
+        79 +  ### App Structure
+        80 +  Each app in `convex/apps/` follows this pattern:
+        81 +  ```typescript
+        82 +  // convex/apps/spotify/index.ts
+        83 +  import { platform } from '../platform';
+        84    
+        85 -  # Live reload - sync code without full rebuild
+        86 -  docker_build('home-osx-api', './apps/api',
+        87 -    live_update=[
+        88 -      sync('./apps/api/src', '/app/src'),
+        89 -      run('pnpm install', 
+           - trigger=['./apps/api/package.json']),
+        90 -    ]
+        91 -  )
+        85 +  export const app = {
+        86 +    id: 'spotify',
+        87 +    name: 'Spotify',
+        88 +    icon: 'spotify-icon',
+        89    
+        90 -  # Port forwards
+        91 -  k8s_resource('api', port_forwards='3001:3001')
+        92 -  k8s_resource('web', port_forwards='3000:3000')
+        93 -  k8s_resource('postgres', port_forwards='5432:5432')
+        90 +    // Convex functions
+        91 +    functions: {
+        92 +      play: mutation(...),
+        93 +      pause: mutation(...),
+        94 +      getNowPlaying: query(...),
+        95 +    },
+        96 +  
+        97 +    // React component for the tile/widget
+        98 +    component: SpotifyWidget,
+        99 +  };
+       100    ```
+       101    
+       102 +  ### App Ideas (Scratchpad)
+       103 +  | App | Description | API/Integration |
+       104 +  |-----|-------------|-----------------|
+       105 +  | **Weather** | Minimal date/time, weather conditions | 
+           + WeatherKit API |
+       106 +  | **Spotify** | Now playing, controls, auto-play to Sonos 
+           + zones | Spotify Web API |
+       107 +  | **Sonos** | Zone control, volume, grouping | Sonos API |
+       108 +  | **Hue** | Lights control, scenes | Philips Hue API |
+       109 +  | **Vacuum** | Dreame L50 Ultra status, start/stop | Dreame
+           +  API (research) |
+       110 +  | **WiFi** | GB used, connected devices, site traffic | 
+           + Router API (research) |
+       111 +  
+       112 +  ## Local Development
+       113 +  
+       114 +  ```bash
+       115 +  # Start Convex + Vite
+       116 +  pnpm dev
+       117 +  
+       118 +  # Or with Tilt (for full stack including iOS simulator)
+       119 +  tilt up
+       120 +  ```
+       121 +  
+       122    ### Services in Dev
+       123    | Service | Port | Description |
+       124    |---------|------|-------------|
+       125    | web | 3000 | React frontend (Vite HMR) |
+       126 -  | api | 3001 | Hono backend |
+       127 -  | postgres | 5432 | PostgreSQL database |
+       126 +  | convex | - | Convex dev server (auto-starts) |
+       127    
+       128    ## Deployment
+       129    
+
+⏺ Now let me update the Research TODOs:
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 25 lines
+
+⏺ Search(pattern: "Research TODOs", path: "~/home-osx/SPEC.md", output_mode:
+        "content")
+  ⎿  Found 1 line (ctrl+o to expand)
+
+⏺ Read(~/home-osx/SPEC.md)
+  ⎿  Read 20 lines
+
+⏺ Update(~/home-osx/SPEC.md)
+  ⎿  Updated ../home-osx/SPEC.md with 6 additions and 1 removal         
+       329    - [ ] Write Tailscale setup guide (how to configure for 
+             home-osx access)
+       330    
+       331    ### Research TODOs
+       332 -  - [ ] Check if WiFi router has an API we can call to get 
+           -  network data (connected devices, bandwidth, etc.)
+       332 +  - [ ] WiFi router API - 
+           +  network data (connected devices, bandwidth, site traffic)
+       333 +  - [ ] Dreame L50 Ultra API - vacuum status, start/stop, 
+           + maps
+       334 +  - [ ] WeatherKit API - Apple's weather service setup
+       335 +  - [ ] Philips Hue API - local bridge API for lights/scenes
+       336 +  - [ ] Sonos API - zone control, grouping
+       337 +  - [ ] Spotify Web API - playback control, now playing
+       338    
+       339    ## Target Device
+       340    
+
+⏺ Bash(cd /Users/calum/home-osx && git add SPEC.md && git commit -m "Major:
+      Switch to Convex, add apps platform architecture…)
+  ⎿  [main 2b549d5] Major: Switch to Convex, add apps platform architecture
+      1 file changed, 95 insertions(+), 41 deletions(-)
+     To https://github.com/calumpwebb/home-osx.git
+        7d14d70..2b549d5  main -> main
+  ⎿  Shell cwd was reset to /Users/calum/home
+
+⏺ Done! Big update:
+
+  Backend → Convex
+  - Single source of types (schema.ts → everywhere)
+  - Real-time built-in
+  - No API layer to write manually
+
+  Apps Platform
+  - Platform core with shared APIs (notifications, settings, user, hooks)
+  - Each app is a module in convex/apps/
+  - Apps can use platform APIs, you can inject code into all apps later
+
+  App Ideas captured:
+  | App     | Status               |
+  |---------|----------------------|
+  | Weather | WeatherKit API       |
+  | Spotify | + auto-play to Sonos |
+  | Sonos   | Zone control         |
+  | Hue     | Lights/scenes        |
+  | Vacuum  | Dreame L50 Ultra     |
+  | WiFi    | Router stats         |
+
+  Ready to scaffold now?
+
+> /export docs/conversations/initial-conversation.md 
+  ⎿  Failed to export conversation: ENOENT: no such file or directory, open 
+     '/Users/calum/home/docs/conversations/initial-conversation.txt'
+
+> make that folder and export 
+
+⏺ Bash(mkdir -p /Users/calum/home-osx/docs/conversations)
+  ⎿  (No content)
+
+⏺ Done - folder created at /Users/calum/home-osx/docs/conversations/. Try
+  the export again.
+
+> /export docs/conversations/initial-conversation.md 
+  ⎿  Failed to export conversation: ENOENT: no such file or directory, open 
+     '/Users/calum/home/docs/conversations/initial-conversation.txt'
+
+> what's wrong? 
+
+⏺ The export is looking in /Users/calum/home/ (your current working
+  directory), not /Users/calum/home-osx/. Let me create it in the right
+  place:
+
+⏺ Bash(mkdir -p /Users/calum/home/docs/conversations)
+  ⎿  (No content)
+
+⏺ Done - try exporting again. (The export was looking in ~/home/ not
+  ~/home-osx/)
+
+! pwd 
+  ⎿  /Users/calum/home
+
+! code . 
+  ⎿  (No content)
+
+
+
